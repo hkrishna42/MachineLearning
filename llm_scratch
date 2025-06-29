@@ -1,1 +1,747 @@
-{"metadata":{"kernelspec":{"language":"python","display_name":"Python 3","name":"python3"},"language_info":{"name":"python","version":"3.11.11","mimetype":"text/x-python","codemirror_mode":{"name":"ipython","version":3},"pygments_lexer":"ipython3","nbconvert_exporter":"python","file_extension":".py"},"kaggle":{"accelerator":"nvidiaTeslaT4","dataSources":[{"sourceId":12132069,"sourceType":"datasetVersion","datasetId":7640003},{"sourceId":12132184,"sourceType":"datasetVersion","datasetId":7640086}],"dockerImageVersionId":31040,"isInternetEnabled":false,"language":"python","sourceType":"notebook","isGpuEnabled":true}},"nbformat_minor":4,"nbformat":4,"cells":[{"cell_type":"code","source":"# This Python 3 environment comes with many helpful analytics libraries installed\n# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python\n# For example, here's several helpful packages to load\n\nimport numpy as np # linear algebra\nimport pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)\nimport pypdf\nimport torch\nimport time\n# Input data files are available in the read-only \"../input/\" directory\n# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory\n\nimport os\nfor dirname, _, filenames in os.walk('/kaggle/input'):\n    for filename in filenames:\n        print(os.path.join(dirname, filename))\n\n# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using \"Save & Run All\" \n# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session","metadata":{"_uuid":"8f2839f25d086af736a60e9eeb907d3b93b6e0e5","_cell_guid":"b1076dfc-b9ad-4769-8c92-a6c4dae69d19","trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:11:19.085248Z","iopub.execute_input":"2025-06-12T05:11:19.085841Z","iopub.status.idle":"2025-06-12T05:11:19.101174Z","shell.execute_reply.started":"2025-06-12T05:11:19.085818Z","shell.execute_reply":"2025-06-12T05:11:19.100395Z"}},"outputs":[{"name":"stdout","text":"/kaggle/input/pdf-datset/33283-pdf.pdf\n","output_type":"stream"}],"execution_count":15},{"cell_type":"markdown","source":"1. **#Extracts text from a PDF file**","metadata":{}},{"cell_type":"code","source":"def extract_text_from_pdf(pdf_path):  \n    reader = pypdf.PdfReader(pdf_path)\n    text = \"\"\n    for page in reader.pages:\n        text += page.extract_text()\n    return text\n\npdf_file = \"/kaggle/input/pdf-datset/33283-pdf.pdf\" # Path to your PDF file\nextracted_text = extract_text_from_pdf(pdf_file)","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:00:47.374906Z","iopub.execute_input":"2025-06-12T05:00:47.375191Z","iopub.status.idle":"2025-06-12T05:00:52.425972Z","shell.execute_reply.started":"2025-06-12T05:00:47.375172Z","shell.execute_reply":"2025-06-12T05:00:52.425387Z"}},"outputs":[],"execution_count":3},{"cell_type":"code","source":"print(len(extracted_text))\nprint(extracted_text[:200])","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:00:52.427040Z","iopub.execute_input":"2025-06-12T05:00:52.427287Z","iopub.status.idle":"2025-06-12T05:00:52.431536Z","shell.execute_reply.started":"2025-06-12T05:00:52.427268Z","shell.execute_reply":"2025-06-12T05:00:52.430904Z"}},"outputs":[{"name":"stdout","text":"274898\nThe Project Gutenberg EBook of Calculus Made Easy, by Silvanus Thompson\nThis eBook is for the use of anyone anywhere in the United States and\nmost other parts of the world at no cost and with almost n\n","output_type":"stream"}],"execution_count":4},{"cell_type":"code","source":"chars = sorted(set(extracted_text))\nprint(chars)\nprint(len(chars))","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:00:53.162668Z","iopub.execute_input":"2025-06-12T05:00:53.163352Z","iopub.status.idle":"2025-06-12T05:00:53.170422Z","shell.execute_reply.started":"2025-06-12T05:00:53.163328Z","shell.execute_reply":"2025-06-12T05:00:53.169600Z"}},"outputs":[{"name":"stdout","text":"['\\x00', '\\x01', '\\x02', '\\x03', '\\x08', '\\t', '\\n', '\\x10', '\\x11', '\\x12', '\\x13', '\\x14', '\\x15', '\\x1a', '\\x1b', ' ', '!', '\"', '#', '$', '%', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '=', '?', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', ']', '`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '}', '£', '¨', '±', '´', 'µ', '·', '×', 'æ', '÷', 'ǫ', '˙', 'α', 'β', 'θ', 'λ', 'π', 'σ', 'ω', 'ϕ', 'ϵ', '–', '—', '‘', '’', '“', '”', '′', '←', '→', '∂', '−', '∓', '√', '∞', '∴', '◦', '\\uf8f1', '\\uf8f2', '\\uf8f3', '\\uf8f4', '\\uf8fc', '\\uf8fd', '\\uf8fe']\n143\n","output_type":"stream"}],"execution_count":5},{"cell_type":"code","source":"string_to_int = {ch:i for i,ch in enumerate(chars)}\nint_to_string = {i:ch for i,ch in enumerate(chars)}","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:00:56.159557Z","iopub.execute_input":"2025-06-12T05:00:56.160242Z","iopub.status.idle":"2025-06-12T05:00:56.163979Z","shell.execute_reply.started":"2025-06-12T05:00:56.160216Z","shell.execute_reply":"2025-06-12T05:00:56.163187Z"}},"outputs":[],"execution_count":6},{"cell_type":"code","source":"encode = lambda s: [string_to_int[c] for c in s]\ndecode = lambda l: ''.join([int_to_string[i] for i in l])","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:01:01.978555Z","iopub.execute_input":"2025-06-12T05:01:01.979346Z","iopub.status.idle":"2025-06-12T05:01:01.983353Z","shell.execute_reply.started":"2025-06-12T05:01:01.979313Z","shell.execute_reply":"2025-06-12T05:01:01.982602Z"}},"outputs":[],"execution_count":7},{"cell_type":"code","source":"encoded_hello = encode(\"Hello\")\nprint(encoded_hello)\n","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:01:14.201336Z","iopub.execute_input":"2025-06-12T05:01:14.202161Z","iopub.status.idle":"2025-06-12T05:01:14.205957Z","shell.execute_reply.started":"2025-06-12T05:01:14.202129Z","shell.execute_reply":"2025-06-12T05:01:14.205153Z"}},"outputs":[{"name":"stdout","text":"[50, 76, 83, 83, 86]\n","output_type":"stream"}],"execution_count":9},{"cell_type":"code","source":"decoded_hello = decode(encoded_hello)\nprint(decoded_hello)","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:01:28.420805Z","iopub.execute_input":"2025-06-12T05:01:28.421584Z","iopub.status.idle":"2025-06-12T05:01:28.425427Z","shell.execute_reply.started":"2025-06-12T05:01:28.421559Z","shell.execute_reply":"2025-06-12T05:01:28.424658Z"}},"outputs":[{"name":"stdout","text":"Hello\n","output_type":"stream"}],"execution_count":10},{"cell_type":"markdown","source":"**Create Tensor out of the encoded pdf text**","metadata":{}},{"cell_type":"code","source":"data = torch.tensor(encode(extracted_text),dtype=torch.long)\nprint(data[:100])","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:01:34.908407Z","iopub.execute_input":"2025-06-12T05:01:34.908651Z","iopub.status.idle":"2025-06-12T05:01:34.994926Z","shell.execute_reply.started":"2025-06-12T05:01:34.908633Z","shell.execute_reply":"2025-06-12T05:01:34.994228Z"}},"outputs":[{"name":"stdout","text":"tensor([62, 79, 76, 15, 58, 89, 86, 81, 76, 74, 91, 15, 49, 92, 91, 76, 85, 73,\n        76, 89, 78, 15, 47, 44, 86, 86, 82, 15, 86, 77, 15, 45, 72, 83, 74, 92,\n        83, 92, 90, 15, 55, 72, 75, 76, 15, 47, 72, 90, 96, 25, 15, 73, 96, 15,\n        61, 80, 83, 93, 72, 85, 92, 90, 15, 62, 79, 86, 84, 87, 90, 86, 85,  6,\n        62, 79, 80, 90, 15, 76, 44, 86, 86, 82, 15, 80, 90, 15, 77, 86, 89, 15,\n        91, 79, 76, 15, 92, 90, 76, 15, 86, 77])\n","output_type":"stream"}],"execution_count":11},{"cell_type":"markdown","source":"**Creating training & testing data split**","metadata":{}},{"cell_type":"code","source":"n = int(0.7*len(data))\ntrain_data = data[:n]\nval_data = data[n:]\n","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:01:55.987406Z","iopub.execute_input":"2025-06-12T05:01:55.987942Z","iopub.status.idle":"2025-06-12T05:01:55.991677Z","shell.execute_reply.started":"2025-06-12T05:01:55.987918Z","shell.execute_reply":"2025-06-12T05:01:55.990892Z"}},"outputs":[],"execution_count":12},{"cell_type":"code","source":"#block_size - creates a tiny tensor\nblock_size = 10\n\nx = train_data[:block_size]\ny = train_data[1:block_size+1]\n#more like a if sequence of input is then the output is\nfor t in range(block_size):\n    context = x[:t+1]\n    target = y[t]\n    print('when input is',context,'target is',target)\n\n","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:02:04.175260Z","iopub.execute_input":"2025-06-12T05:02:04.175951Z","iopub.status.idle":"2025-06-12T05:02:04.184073Z","shell.execute_reply.started":"2025-06-12T05:02:04.175928Z","shell.execute_reply":"2025-06-12T05:02:04.183424Z"}},"outputs":[{"name":"stdout","text":"when input is tensor([62]) target is tensor(79)\nwhen input is tensor([62, 79]) target is tensor(76)\nwhen input is tensor([62, 79, 76]) target is tensor(15)\nwhen input is tensor([62, 79, 76, 15]) target is tensor(58)\nwhen input is tensor([62, 79, 76, 15, 58]) target is tensor(89)\nwhen input is tensor([62, 79, 76, 15, 58, 89]) target is tensor(86)\nwhen input is tensor([62, 79, 76, 15, 58, 89, 86]) target is tensor(81)\nwhen input is tensor([62, 79, 76, 15, 58, 89, 86, 81]) target is tensor(76)\nwhen input is tensor([62, 79, 76, 15, 58, 89, 86, 81, 76]) target is tensor(74)\nwhen input is tensor([62, 79, 76, 15, 58, 89, 86, 81, 76, 74]) target is tensor(91)\n","output_type":"stream"}],"execution_count":13},{"cell_type":"code","source":"#check for the GPU access\nif torch.cuda.is_available():\n    device = 'cuda'\nelse:\n    device = 'cpu'\nprint(device)","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:02:05.427389Z","iopub.execute_input":"2025-06-12T05:02:05.427638Z","iopub.status.idle":"2025-06-12T05:02:05.522561Z","shell.execute_reply.started":"2025-06-12T05:02:05.427619Z","shell.execute_reply":"2025-06-12T05:02:05.521780Z"}},"outputs":[{"name":"stdout","text":"cuda\n","output_type":"stream"}],"execution_count":14},{"cell_type":"markdown","source":"# **Learn Some pyTorch** ","metadata":{}},{"cell_type":"code","source":"\n#Probability Tensor\n#0.9 is 1,0.1 is 0\nprobabilities = torch.tensor([0.1,0.9])\n#draw 5 samples from multinomial distribution\nsamples = torch.multinomial(probabilities, num_samples=10,replacement=True)\nprint(samples)\n\n#Concat two tensors\ntensor = torch.tensor([1,2,3,4])\nout = torch.cat((tensor,torch.tensor([5])),dim=0)\nprint(out)","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:25:51.443672Z","iopub.execute_input":"2025-06-12T05:25:51.444026Z","iopub.status.idle":"2025-06-12T05:25:51.450094Z","shell.execute_reply.started":"2025-06-12T05:25:51.444003Z","shell.execute_reply":"2025-06-12T05:25:51.449351Z"}},"outputs":[{"name":"stdout","text":"tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])\ntensor([1, 2, 3, 4, 5])\n","output_type":"stream"}],"execution_count":32},{"cell_type":"code","source":"#triangle tensor\n#lower\nout = torch.tril(torch.ones(5,5))\nprint(out)\n\n#upper\nout = torch.triu(torch.ones(5,5))\nprint(out)","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:30:00.416558Z","iopub.execute_input":"2025-06-12T05:30:00.417147Z","iopub.status.idle":"2025-06-12T05:30:00.422878Z","shell.execute_reply.started":"2025-06-12T05:30:00.417120Z","shell.execute_reply":"2025-06-12T05:30:00.422280Z"}},"outputs":[{"name":"stdout","text":"tensor([[1., 0., 0., 0., 0.],\n        [1., 1., 0., 0., 0.],\n        [1., 1., 1., 0., 0.],\n        [1., 1., 1., 1., 0.],\n        [1., 1., 1., 1., 1.]])\ntensor([[1., 1., 1., 1., 1.],\n        [0., 1., 1., 1., 1.],\n        [0., 0., 1., 1., 1.],\n        [0., 0., 0., 1., 1.],\n        [0., 0., 0., 0., 1.]])\n","output_type":"stream"}],"execution_count":35},{"cell_type":"code","source":"#transpose the matrix\ninput = torch.ones(2,3,4)\nprint(input)\noutput = input.transpose(0,2)\nprint(output)","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:40:35.428325Z","iopub.execute_input":"2025-06-12T05:40:35.428990Z","iopub.status.idle":"2025-06-12T05:40:35.435085Z","shell.execute_reply.started":"2025-06-12T05:40:35.428967Z","shell.execute_reply":"2025-06-12T05:40:35.434341Z"}},"outputs":[{"name":"stdout","text":"tensor([[[1., 1., 1., 1.],\n         [1., 1., 1., 1.],\n         [1., 1., 1., 1.]],\n\n        [[1., 1., 1., 1.],\n         [1., 1., 1., 1.],\n         [1., 1., 1., 1.]]])\ntensor([[[1., 1., 1., 1.],\n         [1., 1., 1., 1.]],\n\n        [[1., 1., 1., 1.],\n         [1., 1., 1., 1.]],\n\n        [[1., 1., 1., 1.],\n         [1., 1., 1., 1.]]])\n","output_type":"stream"}],"execution_count":42},{"cell_type":"code","source":"#stack\ntensor1 = torch.tensor([1,2,3])\ntensor2 = torch.tensor([4,5,6])\ntensor3 = torch.tensor([7,8,9])\nstacked_tensor = torch.stack([tensor1,tensor2,tensor3])\nprint(stacked_tensor)","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:44:39.335118Z","iopub.execute_input":"2025-06-12T05:44:39.335650Z","iopub.status.idle":"2025-06-12T05:44:39.340761Z","shell.execute_reply.started":"2025-06-12T05:44:39.335619Z","shell.execute_reply":"2025-06-12T05:44:39.340224Z"}},"outputs":[{"name":"stdout","text":"tensor([[1, 2, 3],\n        [4, 5, 6],\n        [7, 8, 9]])\n","output_type":"stream"}],"execution_count":44},{"cell_type":"code","source":"#neural nets\nimport torch.nn as nn\nsample = torch.tensor([10.0,10.0,10.0,5.0])\nlinear = nn.Linear(4,4, bias=True)\nprint(linear(sample))","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2025-06-12T05:54:00.515753Z","iopub.execute_input":"2025-06-12T05:54:00.516407Z","iopub.status.idle":"2025-06-12T05:54:00.522072Z","shell.execute_reply.started":"2025-06-12T05:54:00.516382Z","shell.execute_reply":"2025-06-12T05:54:00.521462Z"}},"outputs":[{"name":"stdout","text":"tensor([-2.6670,  8.4893,  0.0431,  2.3667], grad_fn=<ViewBackward0>)\n","output_type":"stream"}],"execution_count":58},{"cell_type":"code","source":"","metadata":{"trusted":true},"outputs":[],"execution_count":null}]}
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "8c29b809",
+   "metadata": {
+    "_cell_guid": "b1076dfc-b9ad-4769-8c92-a6c4dae69d19",
+    "_uuid": "8f2839f25d086af736a60e9eeb907d3b93b6e0e5",
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:16.760758Z",
+     "iopub.status.busy": "2025-06-29T22:10:16.760438Z",
+     "iopub.status.idle": "2025-06-29T22:10:26.429233Z",
+     "shell.execute_reply": "2025-06-29T22:10:26.428198Z"
+    },
+    "papermill": {
+     "duration": 9.675894,
+     "end_time": "2025-06-29T22:10:26.430608",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:16.754714",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "/kaggle/input/pdf-datset/33283-pdf.pdf\n"
+     ]
+    }
+   ],
+   "source": [
+    "\n",
+    "\n",
+    "import numpy as np # linear algebra\n",
+    "import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)\n",
+    "import pypdf\n",
+    "import torch\n",
+    "import torch.nn as nn\n",
+    "from torch.nn import functional as F\n",
+    "import time\n",
+    "\n",
+    "import os\n",
+    "for dirname, _, filenames in os.walk('/kaggle/input'):\n",
+    "    for filename in filenames:\n",
+    "        print(os.path.join(dirname, filename))\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "82f6762e",
+   "metadata": {
+    "papermill": {
+     "duration": 0.003341,
+     "end_time": "2025-06-29T22:10:26.437571",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:26.434230",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "1. **#Extracts text from a PDF file**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "8d3ff61e",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:26.445121Z",
+     "iopub.status.busy": "2025-06-29T22:10:26.444695Z",
+     "iopub.status.idle": "2025-06-29T22:10:31.849743Z",
+     "shell.execute_reply": "2025-06-29T22:10:31.848927Z"
+    },
+    "papermill": {
+     "duration": 5.410488,
+     "end_time": "2025-06-29T22:10:31.851230",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:26.440742",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "def extract_text_from_pdf(pdf_path):  \n",
+    "    reader = pypdf.PdfReader(pdf_path)\n",
+    "    text = \"\"\n",
+    "    for page in reader.pages:\n",
+    "        text += page.extract_text()\n",
+    "    return text\n",
+    "\n",
+    "pdf_file = \"/kaggle/input/pdf-datset/33283-pdf.pdf\" # Path to your PDF file\n",
+    "extracted_text = extract_text_from_pdf(pdf_file)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "6d3f5767",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:31.859879Z",
+     "iopub.status.busy": "2025-06-29T22:10:31.859148Z",
+     "iopub.status.idle": "2025-06-29T22:10:31.863651Z",
+     "shell.execute_reply": "2025-06-29T22:10:31.862994Z"
+    },
+    "papermill": {
+     "duration": 0.009997,
+     "end_time": "2025-06-29T22:10:31.864812",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:31.854815",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "274898\n",
+      "The Project Gutenberg EBook of Calculus Made Easy, by Silvanus Thompson\n",
+      "This eBook is for the use of anyone anywhere in the United States and\n",
+      "most other parts of the world at no cost and with almost n\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(len(extracted_text))\n",
+    "print(extracted_text[:200])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "ef2eb917",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:31.872556Z",
+     "iopub.status.busy": "2025-06-29T22:10:31.871888Z",
+     "iopub.status.idle": "2025-06-29T22:10:31.880336Z",
+     "shell.execute_reply": "2025-06-29T22:10:31.878844Z"
+    },
+    "papermill": {
+     "duration": 0.013848,
+     "end_time": "2025-06-29T22:10:31.882042",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:31.868194",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "['\\x00', '\\x01', '\\x02', '\\x03', '\\x08', '\\t', '\\n', '\\x10', '\\x11', '\\x12', '\\x13', '\\x14', '\\x15', '\\x1a', '\\x1b', ' ', '!', '\"', '#', '$', '%', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '=', '?', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', ']', '`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '}', '£', '¨', '±', '´', 'µ', '·', '×', 'æ', '÷', 'ǫ', '˙', 'α', 'β', 'θ', 'λ', 'π', 'σ', 'ω', 'ϕ', 'ϵ', '–', '—', '‘', '’', '“', '”', '′', '←', '→', '∂', '−', '∓', '√', '∞', '∴', '◦', '\\uf8f1', '\\uf8f2', '\\uf8f3', '\\uf8f4', '\\uf8fc', '\\uf8fd', '\\uf8fe']\n",
+      "143\n"
+     ]
+    }
+   ],
+   "source": [
+    "chars = sorted(set(extracted_text))\n",
+    "print(chars)\n",
+    "print(len(chars))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "52902d17",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:31.889946Z",
+     "iopub.status.busy": "2025-06-29T22:10:31.889727Z",
+     "iopub.status.idle": "2025-06-29T22:10:31.893479Z",
+     "shell.execute_reply": "2025-06-29T22:10:31.892899Z"
+    },
+    "papermill": {
+     "duration": 0.008773,
+     "end_time": "2025-06-29T22:10:31.894482",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:31.885709",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "string_to_int = {ch:i for i,ch in enumerate(chars)}\n",
+    "int_to_string = {i:ch for i,ch in enumerate(chars)}"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "e4dd5e4e",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:31.901740Z",
+     "iopub.status.busy": "2025-06-29T22:10:31.901302Z",
+     "iopub.status.idle": "2025-06-29T22:10:31.904613Z",
+     "shell.execute_reply": "2025-06-29T22:10:31.904153Z"
+    },
+    "papermill": {
+     "duration": 0.007962,
+     "end_time": "2025-06-29T22:10:31.905682",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:31.897720",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "#lambda fiuntions to encode and decode given content in text or vice versa\n",
+    "encode = lambda s: [string_to_int[c] for c in s]\n",
+    "decode = lambda l: ''.join([int_to_string[i] for i in l])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "78057ec8",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:31.912909Z",
+     "iopub.status.busy": "2025-06-29T22:10:31.912512Z",
+     "iopub.status.idle": "2025-06-29T22:10:31.916293Z",
+     "shell.execute_reply": "2025-06-29T22:10:31.915586Z"
+    },
+    "papermill": {
+     "duration": 0.008366,
+     "end_time": "2025-06-29T22:10:31.917318",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:31.908952",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "[50, 76, 83, 83, 86]\n"
+     ]
+    }
+   ],
+   "source": [
+    "encoded_hello = encode(\"Hello\")\n",
+    "print(encoded_hello)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "1d35213b",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:31.924353Z",
+     "iopub.status.busy": "2025-06-29T22:10:31.924173Z",
+     "iopub.status.idle": "2025-06-29T22:10:31.928155Z",
+     "shell.execute_reply": "2025-06-29T22:10:31.927336Z"
+    },
+    "papermill": {
+     "duration": 0.008898,
+     "end_time": "2025-06-29T22:10:31.929445",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:31.920547",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Hello\n"
+     ]
+    }
+   ],
+   "source": [
+    "decoded_hello = decode(encoded_hello)\n",
+    "print(decoded_hello)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d2a49685",
+   "metadata": {
+    "papermill": {
+     "duration": 0.002943,
+     "end_time": "2025-06-29T22:10:31.935614",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:31.932671",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "**Create Tensor out of the encoded pdf text**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "91e5d893",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:31.942762Z",
+     "iopub.status.busy": "2025-06-29T22:10:31.942586Z",
+     "iopub.status.idle": "2025-06-29T22:10:32.064901Z",
+     "shell.execute_reply": "2025-06-29T22:10:32.064062Z"
+    },
+    "papermill": {
+     "duration": 0.12714,
+     "end_time": "2025-06-29T22:10:32.066073",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:31.938933",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "tensor([62, 79, 76, 15, 58, 89, 86, 81, 76, 74, 91, 15, 49, 92, 91, 76, 85, 73,\n",
+      "        76, 89, 78, 15, 47, 44, 86, 86, 82, 15, 86, 77, 15, 45, 72, 83, 74, 92,\n",
+      "        83, 92, 90, 15, 55, 72, 75, 76, 15, 47, 72, 90, 96, 25, 15, 73, 96, 15,\n",
+      "        61, 80, 83, 93, 72, 85, 92, 90, 15, 62, 79, 86, 84, 87, 90, 86, 85,  6,\n",
+      "        62, 79, 80, 90, 15, 76, 44, 86, 86, 82, 15, 80, 90, 15, 77, 86, 89, 15,\n",
+      "        91, 79, 76, 15, 92, 90, 76, 15, 86, 77])\n"
+     ]
+    }
+   ],
+   "source": [
+    "data = torch.tensor(encode(extracted_text),dtype=torch.long)\n",
+    "print(data[:100])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "18cc1175",
+   "metadata": {
+    "papermill": {
+     "duration": 0.002966,
+     "end_time": "2025-06-29T22:10:32.072658",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:32.069692",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "**Creating training & testing data split**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "535b538a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:32.079992Z",
+     "iopub.status.busy": "2025-06-29T22:10:32.079786Z",
+     "iopub.status.idle": "2025-06-29T22:10:32.169984Z",
+     "shell.execute_reply": "2025-06-29T22:10:32.169292Z"
+    },
+    "papermill": {
+     "duration": 0.095251,
+     "end_time": "2025-06-29T22:10:32.171114",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:32.075863",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "cuda\n"
+     ]
+    }
+   ],
+   "source": [
+    "#check for the GPU access\n",
+    "if torch.cuda.is_available():\n",
+    "    device = 'cuda'\n",
+    "else:\n",
+    "    device = 'cpu'\n",
+    "print(device)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "1603cf8a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:32.179117Z",
+     "iopub.status.busy": "2025-06-29T22:10:32.178541Z",
+     "iopub.status.idle": "2025-06-29T22:10:32.448602Z",
+     "shell.execute_reply": "2025-06-29T22:10:32.447638Z"
+    },
+    "papermill": {
+     "duration": 0.27529,
+     "end_time": "2025-06-29T22:10:32.449851",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:32.174561",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "inputs:\n",
+      "tensor([[76, 85, 91, 80, 72, 83, 15, 86, 77, 15],\n",
+      "        [83, 76, 77, 91, 15, 86, 77, 15, 55, 15],\n",
+      "        [95, 15, 41, 15, 31, 27, 34, 25, 15, 96],\n",
+      "        [27, 15, 31, 34, 27,  6, 91, 79, 72, 91]], device='cuda:0')\n",
+      "target:\n",
+      "tensor([[85, 91, 80, 72, 83, 15, 86, 77, 15, 96],\n",
+      "        [76, 77, 91, 15, 86, 77, 15, 55, 15, 91],\n",
+      "        [15, 41, 15, 31, 27, 34, 25, 15, 96, 15],\n",
+      "        [15, 31, 34, 27,  6, 91, 79, 72, 91, 15]], device='cuda:0')\n"
+     ]
+    }
+   ],
+   "source": [
+    "n = int(0.7*len(data))\n",
+    "train_data = data[:n]\n",
+    "val_data = data[n:]\n",
+    "batch_size = 4 #text data chunks\n",
+    "block_size = 10\n",
+    "max_iters = 10000\n",
+    "learning_rate = 3e-4\n",
+    "eval_iters = 250\n",
+    "def get_batch(split):\n",
+    "    data = train_data if split == 'train' else val_data #decide if the data is train or validation\n",
+    "    ix = torch.randint(len(data) - block_size, (batch_size,)) #get the random starts of the batches\n",
+    "    #print(ix)\n",
+    "    x = torch.stack([data[i:i+block_size] for i in ix]) #\n",
+    "    y = torch.stack([data[i+1:i+block_size+1] for i in ix])\n",
+    "    x,y = x.to(device), y.to(device)\n",
+    "    return x,y\n",
+    "\n",
+    "x,y = get_batch('train')\n",
+    "print('inputs:')\n",
+    "print(x)\n",
+    "print('target:')\n",
+    "print(y)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "6beccc90",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:32.457407Z",
+     "iopub.status.busy": "2025-06-29T22:10:32.457204Z",
+     "iopub.status.idle": "2025-06-29T22:10:32.460347Z",
+     "shell.execute_reply": "2025-06-29T22:10:32.459817Z"
+    },
+    "papermill": {
+     "duration": 0.008094,
+     "end_time": "2025-06-29T22:10:32.461451",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:32.453357",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "#block_size - creates a tiny tensor\n",
+    "# block_size = 10\n",
+    "\n",
+    "# x = train_data[:block_size]\n",
+    "# y = train_data[1:block_size+1]\n",
+    "# #if sequence of input is context then the output is target\n",
+    "# for t in range(block_size):\n",
+    "#     context = x[:t+1]\n",
+    "#     target = y[t]\n",
+    "#     print('when input is',context,'target is',target)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "5ffd3681",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:32.468731Z",
+     "iopub.status.busy": "2025-06-29T22:10:32.468511Z",
+     "iopub.status.idle": "2025-06-29T22:10:33.288711Z",
+     "shell.execute_reply": "2025-06-29T22:10:33.288073Z"
+    },
+    "papermill": {
+     "duration": 0.825471,
+     "end_time": "2025-06-29T22:10:33.290202",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:32.464731",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "class BigramLanguageModel(nn.Module):\n",
+    "    def __init__(self,vocab_size):\n",
+    "        super().__init__()\n",
+    "        self.token_embedding_table = nn.Embedding(vocab_size,vocab_size)\n",
+    "\n",
+    "    def forward(self,index, targets=None):\n",
+    "        logits = self.token_embedding_table(index)#index would be the input words\n",
+    "        if targets is None:\n",
+    "            loss = None\n",
+    "        else:\n",
+    "            B, T, C = logits.shape #Batch, Number of Tokens, Clases or Channels\n",
+    "            logits = logits.view(B*T,C) #making it one parameter Batch*Tokens\n",
+    "            targets = targets.view(B*T)\n",
+    "            loss = F.cross_entropy(logits,targets)\n",
+    "        return logits, loss\n",
+    "\n",
+    "    def generate(self, index, max_new_tokens):\n",
+    "        #index is (B,T) array of indices in the current context\n",
+    "        for i in range(max_new_tokens):\n",
+    "            #get prediction\n",
+    "            logits,loss = self.forward(index)\n",
+    "            logits = logits[:,-1,:] #becomes (B,C)\n",
+    "            #apply softmax for probabilities\n",
+    "            probs = F.softmax(logits,dim = -1)#(B,C)\n",
+    "            index_next = torch.multinomial(probs,num_samples=1)#(B,1)\n",
+    "            index = torch.cat((index, index_next),dim=1) #(B,T+1)\n",
+    "        return index\n",
+    "vocab_size = len(chars)\n",
+    "model = BigramLanguageModel(len(chars))\n",
+    "m = model.to(device)\n",
+    "context = torch.zeros((1,1), dtype=torch.long, device=device)\n",
+    "generated_chars = decode(m.generate(context,max_new_tokens=500)[0].tolist())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "bc25a4e3",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:33.299881Z",
+     "iopub.status.busy": "2025-06-29T22:10:33.299422Z",
+     "iopub.status.idle": "2025-06-29T22:10:33.303366Z",
+     "shell.execute_reply": "2025-06-29T22:10:33.302608Z"
+    },
+    "papermill": {
+     "duration": 0.009835,
+     "end_time": "2025-06-29T22:10:33.304616",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:33.294781",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\u0000÷J+←σ6y=48wA∓\u0014D\u0002SG2¨˙)S—=9Nθ←æ\"←fS]KW-z3#v\n",
+      "j#$.r+\u0010;\u0001s\t←ngF3!i˙u\u00159′←w\b”−∓Y]ϵαϕbi“!dfx?:BJ+π\bj\u0002\u0000YC\u0011πϕ\u0013cc)£%\u001bωF;′RuB÷}Vr;4±ωhl#9÷\u0000Kπ9\u0010K\u0000α;Of2l0\u001a—θ/ϵ—X3UTc+=WRϕd–F÷√.IL\u0011æ2(8±2q£nF5t\u001bwG:\u00136λ{]M,3Ef$,E\u0014l\u0010v!‘%d3N:σ7E7}αQGBHg7B◦\b\u0010tPc\u001a·\br\u001b /(θTπyr\t∂6%j\"s3\u0002βOF+M` W¨]◦·÷\u0002VX%\b¨?:¨\u00005eσcp0’?\"l\u001b—sλα/β.# :)i{n?◦±×L(e\u001beσ×Zu\u001b—◦t1◦?\u001a2·pd?N–·6·√?y—ǫ)Sp\u0013#X`1\bc/=˙∓qKrMh`£=B40αY!X\u0002OT\tϵ{J−r{ω\u0000k%)FαkQGXϕ%“v8=F“W∴qP¨;j`H–[!d×cmNw′u\u00025c#n?¨′\u0014Pk‘πZθa∴D¨E£=9mruxX′→·K“+√)YH∓¨\u0000*gA%8r”aTF3’$MkmT.g′M?\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(generated_chars)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "eb243f62",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:33.313575Z",
+     "iopub.status.busy": "2025-06-29T22:10:33.313083Z",
+     "iopub.status.idle": "2025-06-29T22:10:49.429062Z",
+     "shell.execute_reply": "2025-06-29T22:10:49.428056Z"
+    },
+    "papermill": {
+     "duration": 16.121937,
+     "end_time": "2025-06-29T22:10:49.430429",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:33.308492",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "3.47099232673645\n"
+     ]
+    }
+   ],
+   "source": [
+    "optimizer = torch.optim.AdamW(model.parameters(),lr=learning_rate)\n",
+    "\n",
+    "for iter in range(max_iters):\n",
+    "    xb, yb = get_batch('train')\n",
+    "\n",
+    "    #evaluate the loss\n",
+    "    logits,loss = model.forward(xb,yb)\n",
+    "    optimizer.zero_grad(set_to_none=True)\n",
+    "    loss.backward()\n",
+    "    optimizer.step()\n",
+    "print(loss.item())\n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "61008c0f",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-06-29T22:10:49.439647Z",
+     "iopub.status.busy": "2025-06-29T22:10:49.439249Z",
+     "iopub.status.idle": "2025-06-29T22:10:49.444653Z",
+     "shell.execute_reply": "2025-06-29T22:10:49.443963Z"
+    },
+    "papermill": {
+     "duration": 0.011067,
+     "end_time": "2025-06-29T22:10:49.445768",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:49.434701",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "torch.Size([2, 3, 5])\n",
+      "torch.Size([2, 3, 5])\n"
+     ]
+    }
+   ],
+   "source": [
+    "a = torch.rand(2,3,5)\n",
+    "print(a.shape)\n",
+    "x,y,z = a.shape\n",
+    "a  = a.view(x,y,z)\n",
+    "print(a.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b9d06ff3",
+   "metadata": {
+    "papermill": {
+     "duration": 0.003471,
+     "end_time": "2025-06-29T22:10:49.452768",
+     "exception": false,
+     "start_time": "2025-06-29T22:10:49.449297",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kaggle": {
+   "accelerator": "nvidiaTeslaT4",
+   "dataSources": [
+    {
+     "datasetId": 7640003,
+     "sourceId": 12132069,
+     "sourceType": "datasetVersion"
+    },
+    {
+     "datasetId": 7640086,
+     "sourceId": 12132184,
+     "sourceType": "datasetVersion"
+    }
+   ],
+   "dockerImageVersionId": 31040,
+   "isGpuEnabled": true,
+   "isInternetEnabled": false,
+   "language": "python",
+   "sourceType": "notebook"
+  },
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.11"
+  },
+  "papermill": {
+   "default_parameters": {},
+   "duration": 41.976487,
+   "end_time": "2025-06-29T22:10:52.800334",
+   "environment_variables": {},
+   "exception": null,
+   "input_path": "__notebook__.ipynb",
+   "output_path": "__notebook__.ipynb",
+   "parameters": {},
+   "start_time": "2025-06-29T22:10:10.823847",
+   "version": "2.6.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
